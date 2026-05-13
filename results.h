@@ -11,7 +11,7 @@ typedef struct {
     bool validated; // a result is validated the moment it is shown after creation.
 } Result;
 
-Result create(uint8_t result_code, bool verbose, bool success, const char *custom_msg);
-Result validate(Result res);
+Result rslts_create(uint8_t result_code, bool verbose, bool success, const char *custom_msg);
+Result rslts_validate(Result res);
 
 #endif
