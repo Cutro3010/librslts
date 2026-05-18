@@ -3,8 +3,13 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdio.h>
 
-Result rslts_create(uint8_t code, bool lock , bool verbose, const char *custom_msg, bool success, const char *file, int line){
+static int64_t total_created = 0;
+static int64_t total_validated= 0;
+static bool checksum_called_manually = false;
+
+Result rslts_create(uint8_t code, bool lock , bool verbose, bool success, const char *custom_msg, const char *file, int line){
   Result r = {0};
   r.lock = lock;
   r.result_code = code; 
@@ -21,10 +26,11 @@ Result rslts_create(uint8_t code, bool lock , bool verbose, const char *custom_m
   }
   strncpy(r.result_text, source, 63);
   r.result_text[63] = '\0';
+  total_created++;
   return r;
 }
 
-void rslts_validate(Result *res){if (!res) return;  res->validated = true;}
+void rslts_validate(Result *res){if (!res) return; total_validated++; res->validated = true;}
 
 void rslts_unwrap(Result *res){
   if (!res) return;
@@ -60,3 +66,25 @@ void rslts_result_print(Result *res){
   printf("--- End Result\n");
 }
 
+bool rslts_is_ok(Result res)  { return res.success; }
+bool rslts_is_err(Result res) { return !res.success; }
+
+void rslts_ignore_lock(Result *res) {
+    if (res) res->lock = false;
+}
+
+void rslts_checksum() {
+  checksum_called_manually = true; 
+    if (total_created != total_validated) {
+        fprintf(stderr, "\n[WARNING] RSLTS Checksum Failed!\n");
+        fprintf(stderr, "Results created: %ld, Results validated: %ld\n", total_created, total_validated);
+        fprintf(stderr, "Missing validations: %ld\n", total_created - total_validated);
+        exit(1);
+    }
+}
+
+void rslts_auto_check() {
+    if (!checksum_called_manually) {
+        fprintf(stderr, "[Panic] rslts_checksum() was never called! Integrity unverified.\n");
+    }
+}
